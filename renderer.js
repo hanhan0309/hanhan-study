@@ -138,6 +138,58 @@ function renderTasks() {
       attachBtn.addEventListener('click', () => onAttachment(t, attachBtn));
       body.appendChild(attachBtn);
 
+      // 已上传时显示删除附件 + 保存到相册按钮
+      if (t.attachment) {
+        const attachActions = document.createElement('span');
+        attachActions.style.cssText = 'display:inline-flex;gap:4px;margin-top:4px;';
+
+        // 删除附件
+        const delAttach = document.createElement('button');
+        delAttach.className = 'task-attach-btn';
+        delAttach.style.cssText = 'color:#E53935;border-color:#FFCDD2;background:#FFEBEE;';
+        delAttach.textContent = '✕ 删除附件';
+        delAttach.addEventListener('click', async (e) => {
+          e.stopPropagation();
+          t.attachment = null;
+          await saveData();
+          renderTasks();
+        });
+        attachActions.appendChild(delAttach);
+
+        // 保存到相册
+        const saveToAlbum = document.createElement('button');
+        saveToAlbum.className = 'task-attach-btn';
+        saveToAlbum.style.cssText = 'color:#1976D2;border-color:#BBDEFB;background:#E3F2FD;';
+        saveToAlbum.textContent = '💾 存到相册';
+        saveToAlbum.addEventListener('click', async (e) => {
+          e.stopPropagation();
+          const b64 = await window.api.readAttachment(t.attachment.path);
+          if (!b64) return;
+          const mime = t.attachment.type || 'image/png';
+          const dataUrl = 'data:' + mime + ';base64,' + b64;
+          if (mime.startsWith('image/')) {
+            // 创建下载链接
+            const a = document.createElement('a');
+            a.href = dataUrl;
+            a.download = t.attachment.originalName || 'photo.jpg';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            alert('已保存到相册！');
+          } else if (mime.startsWith('video/')) {
+            const a = document.createElement('a');
+            a.href = dataUrl;
+            a.download = t.attachment.originalName || 'video.mp4';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            alert('已保存到相册！');
+          }
+        });
+        attachActions.appendChild(saveToAlbum);
+        body.appendChild(attachActions);
+      }
+
       // 附件缩略图（图片）
       if (t.attachment && t.attachment.type && t.attachment.type.startsWith('image/')) {
         loadAttachmentThumb(t.attachment.path).then(src => {
