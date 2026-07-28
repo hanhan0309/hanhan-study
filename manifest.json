@@ -1,0 +1,22 @@
+{
+  "name": "含含开心学习",
+  "short_name": "含含学习",
+  "description": "小学生每日学习任务工作台，美乐蒂小猫养成奖励",
+  "start_url": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#FFE4ED",
+  "theme_color": "#FFE4ED",
+  "icons": [
+    {
+      "src": "icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
