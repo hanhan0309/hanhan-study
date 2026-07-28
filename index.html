@@ -18,9 +18,22 @@
 <body>
   <header class="app-header">
     <div class="title-block"><span class="logo-emoji">🎀</span><h1>含含开心学习</h1></div>
-    <div class="header-actions"><button class="btn btn-ghost" id="templateBtn">📋 模板</button></div>
+    <div class="header-actions"><button class="btn btn-ghost" id="syncBtn">🔄 同步</button><button class="btn btn-ghost" id="templateBtn">📋 模板</button></div>
   </header>
   <main class="layout">
+    <!-- Token 设置弹窗 -->
+    <div class="modal" id="syncModal">
+      <div class="modal-content">
+        <div class="modal-head"><h3>🔄 多设备同步设置</h3><button class="btn btn-close" id="closeSync">×</button></div>
+        <p style="font-size:13px;color:var(--text-muted);margin-bottom:10px;">输入 GitHub Token，妈妈和孩子就能看到同一份数据。</p>
+        <input type="password" id="tokenInput" placeholder="粘贴 GitHub Token (ghp_...)" style="width:100%;padding:10px;border:2px solid var(--pink-mid);border-radius:var(--radius-sm);font-size:13px;font-family:monospace;" />
+        <div class="modal-foot" style="margin-top:12px;">
+          <button class="btn btn-ghost" id="howToToken">❓ 怎么获取</button>
+          <button class="btn btn-primary" id="saveTokenBtn">💾 保存</button>
+        </div>
+        <p id="syncStatus" style="font-size:12px;color:var(--text-muted);margin-top:8px;text-align:center;"></p>
+      </div>
+    </div>
     <section class="card calendar-card">
       <div class="calendar-head">
         <button class="nav-btn" id="prevMonth">‹</button><span id="monthLabel"></span><button class="nav-btn" id="nextMonth">›</button><button class="today-btn" id="todayBtn">今天</button>

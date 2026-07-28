@@ -477,8 +477,34 @@ function bindEvents() {
   $('#closeAttach').addEventListener('click', () => $('#attachModal').classList.remove('show'));
 
   // 点击遮罩关闭
-  [$('#templateModal'), $('#attachModal')].forEach(m => {
+  [$('#templateModal'), $('#attachModal'), $('#syncModal')].forEach(m => {
     m.addEventListener('click', (e) => { if (e.target === m) m.classList.remove('show'); });
+  });
+
+  // 同步设置
+  $('#syncBtn').addEventListener('click', () => {
+    if (window.api.hasToken()) {
+      $('#tokenInput').value = window.api.getToken();
+      $('#syncStatus').textContent = '✅ 已设置同步';
+    }
+    $('#syncModal').classList.add('show');
+  });
+  $('#closeSync').addEventListener('click', () => $('#syncModal').classList.remove('show'));
+  $('#saveTokenBtn').addEventListener('click', async () => {
+    const token = $('#tokenInput').value.trim();
+    if (!token) return;
+    window.api.setToken(token);
+    $('#syncStatus').textContent = '✅ 已保存！正在同步...';
+    // 立即推送当前数据
+    const raw = localStorage.getItem('hanhan-data');
+    if (raw) {
+      await window.api.saveData(JSON.parse(raw));
+    }
+    $('#syncStatus').textContent = '✅ 同步成功！妈妈和孩子数据互通了';
+    setTimeout(() => $('#syncModal').classList.remove('show'), 1500);
+  });
+  $('#howToToken').addEventListener('click', () => {
+    window.open('https://github.com/settings/tokens/new?scopes=repo&description=hanhan-sync', '_blank');
   });
 }
 
@@ -489,4 +515,17 @@ function bindEvents() {
   renderCalendar();
   renderTasks();
   renderMelody();
+
+  // 每 30 秒自动从 GitHub 同步一次（静默）
+  setInterval(async () => {
+    try {
+      const prevData = JSON.stringify(state.data);
+      state.data = await window.api.loadData();
+      if (JSON.stringify(state.data) !== prevData) {
+        renderCalendar();
+        renderTasks();
+        renderMelody();
+      }
+    } catch (e) {}
+  }, 30000);
 })();
