@@ -3,7 +3,7 @@
     "2026-07-28": [
       {
         "id": "ms47ex1nz7du",
-        "title": "æ´»é¡µå­å¸",
+        "title": "Ã¦Â´Â»Ã©Â¡ÂµÃ¥Â­ÂÃ¥Â¸Â",
         "done": true,
         "attachment": null
       }
@@ -11,7 +11,7 @@
     "2026-07-29": [
       {
         "id": "ms5dhdmrceo9",
-        "title": "活页字帖",
+        "title": "æ´»é¡µå­å¸",
         "done": true,
         "stars": 3,
         "attachment": {
@@ -25,101 +25,102 @@
   },
   "templates": [],
   "achievements": {
-    "2026-07-28": true
+    "2026-07-28": true,
+    "2026-07-29": true
   },
   "stars": 3,
   "purchases": [],
   "shop": [
     {
       "id": "s1",
-      "name": "皇冠",
-      "icon": "👑",
+      "name": "çå ",
+      "icon": "ð",
       "cost": 20,
-      "category": "装扮"
+      "category": "è£æ®"
     },
     {
       "id": "s2",
-      "name": "蝴蝶结",
-      "icon": "🎀",
+      "name": "è´è¶ç»",
+      "icon": "ð",
       "cost": 15,
-      "category": "装扮"
+      "category": "è£æ®"
     },
     {
       "id": "s3",
-      "name": "墨镜",
-      "icon": "🕶️",
+      "name": "å¢¨é",
+      "icon": "ð¶ï¸",
       "cost": 10,
-      "category": "装扮"
+      "category": "è£æ®"
     },
     {
       "id": "s4",
-      "name": "天使翅膀",
-      "icon": "🪽",
+      "name": "å¤©ä½¿ç¿è",
+      "icon": "ðª½",
       "cost": 30,
-      "category": "装扮"
+      "category": "è£æ®"
     },
     {
       "id": "s5",
-      "name": "魔法棒",
-      "icon": "🪄",
+      "name": "é­æ³æ£",
+      "icon": "ðª",
       "cost": 25,
-      "category": "装扮"
+      "category": "è£æ®"
     },
     {
       "id": "s6",
-      "name": "小裙子",
-      "icon": "👗",
+      "name": "å°è£å­",
+      "icon": "ð",
       "cost": 35,
-      "category": "装扮"
+      "category": "è£æ®"
     },
     {
       "id": "s7",
-      "name": "项链",
-      "icon": "📿",
+      "name": "é¡¹é¾",
+      "icon": "ð¿",
       "cost": 12,
-      "category": "装扮"
+      "category": "è£æ®"
     },
     {
       "id": "s8",
-      "name": "天使光环",
-      "icon": "😇",
+      "name": "å¤©ä½¿åç¯",
+      "icon": "ð",
       "cost": 40,
-      "category": "装扮"
+      "category": "è£æ®"
     },
     {
       "id": "s9",
-      "name": "贴纸包",
-      "icon": "🌟",
+      "name": "è´´çº¸å",
+      "icon": "ð",
       "cost": 5,
-      "category": "实物"
+      "category": "å®ç©"
     },
     {
       "id": "s10",
-      "name": "小零食",
-      "icon": "🍬",
+      "name": "å°é¶é£",
+      "icon": "ð¬",
       "cost": 8,
-      "category": "实物"
+      "category": "å®ç©"
     },
     {
       "id": "s11",
-      "name": "小玩具",
-      "icon": "🧸",
+      "name": "å°ç©å·",
+      "icon": "ð§¸",
       "cost": 50,
-      "category": "实物"
+      "category": "å®ç©"
     },
     {
       "id": "s12",
-      "name": "绘本",
-      "icon": "📚",
+      "name": "ç»æ¬",
+      "icon": "ð",
       "cost": 60,
-      "category": "实物"
+      "category": "å®ç©"
     },
     {
       "id": "s13",
-      "name": "文具套装",
-      "icon": "✏️",
+      "name": "æå·å¥è£",
+      "icon": "âï¸",
       "cost": 30,
-      "category": "实物"
+      "category": "å®ç©"
     }
   ],
   "settings": {}
