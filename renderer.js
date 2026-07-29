@@ -47,7 +47,19 @@ function renderMascot() {
   const panel = $('#mascotPanel');
   const ds = state.selectedDate;
   const tasks = state.data.tasks?.[ds] || [];
-  const achieved = state.data.achievements?.[ds] === true;
+  const done = tasks.filter(t => t.done).length;
+  const ratio = tasks.length === 0 ? 0 : done / tasks.length;
+  const achieved = tasks.length > 0 && ratio >= 0.7;
+
+  // 同步更新 achievements
+  if (achieved && !state.data.achievements?.[ds]) {
+    if (!state.data.achievements) state.data.achievements = {};
+    state.data.achievements[ds] = true;
+    saveData();
+  } else if (!achieved && tasks.length > 0 && state.data.achievements?.[ds]) {
+    delete state.data.achievements[ds];
+    saveData();
+  }
 
   let svgFn, name;
   if (state.theme === 'kuromi') {
@@ -59,18 +71,41 @@ function renderMascot() {
   }
 
   let svg = '';
+  let bubble = '';
   if (tasks.length === 0) {
     svg = svgFn('happy');
+    bubble = '先添加今天的学习计划吧！';
   } else if (achieved) {
     svg = svgFn('happy');
+    bubble = '谢谢含含！今天你真棒！';
   } else {
     svg = svgFn('sad');
+    bubble = '含含，你要加油噢！';
   }
+
+  const satiety = Math.round(ratio * 100);
+  const clean = achieved ? 100 : Math.round(ratio * 80);
 
   panel.innerHTML = `
     ${svg}
     <div style="font-size:12px;font-weight:600;color:var(--deep);margin-top:2px">${name}</div>
     <div class="stars-badge">⭐ ${state.data.stars || 0}</div>
+    <div style="margin-top:8px;font-size:10px;color:var(--text2)">
+      <div style="display:flex;align-items:center;gap:4px;margin:2px 0">
+        <span style="width:32px;text-align:right">饱腹</span>
+        <div style="flex:1;height:6px;background:var(--bg3);border-radius:3px;overflow:hidden"><div style="height:100%;width:${satiety}%;background:linear-gradient(90deg,#FFD54F,#FF9800);border-radius:3px"></div></div>
+        <span style="width:28px;font-weight:700">${satiety}%</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:4px;margin:2px 0">
+        <span style="width:32px;text-align:right">清洁</span>
+        <div style="flex:1;height:6px;background:var(--bg3);border-radius:3px;overflow:hidden"><div style="height:100%;width:${clean}%;background:linear-gradient(90deg,#81D4FA,#29B6F6);border-radius:3px"></div></div>
+        <span style="width:28px;font-weight:700">${clean}%</span>
+      </div>
+    </div>
+    <div style="background:white;border:1px solid var(--bg3);border-radius:8px;padding:4px 6px;font-size:10px;color:var(--deep);margin-top:6px;position:relative">${bubble}</div>
+    <div style="margin-top:10px;font-size:10px;color:var(--text2);line-height:1.5;font-style:italic;padding:4px;border-top:1px dashed var(--bg3)">
+      书山有路勤为径<br>学海无涯苦作舟
+    </div>
   `;
 }
 
