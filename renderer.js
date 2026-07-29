@@ -103,9 +103,6 @@ function renderMascot() {
       </div>
     </div>
     <div style="background:white;border:1px solid var(--bg3);border-radius:8px;padding:4px 6px;font-size:10px;color:var(--deep);margin-top:6px;position:relative">${bubble}</div>
-    <div style="margin-top:10px;font-size:10px;color:var(--text2);line-height:1.5;font-style:italic;padding:4px;border-top:1px dashed var(--bg3)">
-      书山有路勤为径<br>学海无涯苦作舟
-    </div>
   `;
 }
 
