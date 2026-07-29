@@ -7,12 +7,20 @@
         "done": true,
         "attachment": null
       }
+    ],
+    "2026-07-29": [
+      {
+        "id": "ms5dsnjh905y",
+        "title": "活页字帖",
+        "done": false,
+        "stars": 3,
+        "attachment": null
+      }
     ]
   },
   "templates": [],
   "achievements": {
-    "2026-07-28": true,
-    "2026-07-29": true
+    "2026-07-28": true
   },
   "stars": 3,
   "purchases": [],
