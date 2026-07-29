@@ -20,6 +20,25 @@ function fmtDate(y,m,d) { return `${y}-${String(m+1).padStart(2,'0')}-${String(d
 // ===== 数据 =====
 async function loadData() {
   state.data = await window.api.loadData();
+  // 强制修复旧版乱码商城数据
+  if (!state.data.shop || state.data.shop.length === 0 || state.data.shop[0].icon === '👑') {
+    state.data.shop = [
+      { id: 's1', name: '皇冠', icon: '♛', cost: 20, category: '装扮' },
+      { id: 's2', name: '蝴蝶结', icon: '♡', cost: 15, category: '装扮' },
+      { id: 's3', name: '墨镜', icon: '◎', cost: 10, category: '装扮' },
+      { id: 's4', name: '天使翅膀', icon: '❋', cost: 30, category: '装扮' },
+      { id: 's5', name: '魔法棒', icon: '★', cost: 25, category: '装扮' },
+      { id: 's6', name: '小裙子', icon: '♦', cost: 35, category: '装扮' },
+      { id: 's7', name: '项链', icon: '◆', cost: 12, category: '装扮' },
+      { id: 's8', name: '天使光环', icon: '◎', cost: 40, category: '装扮' },
+      { id: 's9', name: '贴纸包', icon: '▣', cost: 5, category: '实物' },
+      { id: 's10', name: '小零食', icon: '●', cost: 8, category: '实物' },
+      { id: 's11', name: '小玩具', icon: '♤', cost: 50, category: '实物' },
+      { id: 's12', name: '绘本', icon: '▤', cost: 60, category: '实物' },
+      { id: 's13', name: '文具套装', icon: '✎', cost: 30, category: '实物' },
+    ];
+    saveData();
+  }
   state.theme = state.data.settings?.theme || 'melody';
   applyTheme();
 }
