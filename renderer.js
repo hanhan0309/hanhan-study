@@ -1,106 +1,131 @@
-// ===== 含含开心学习 - 主逻辑 =====
-const $ = (s) => document.querySelector(s);
-const $$ = (s) => document.querySelectorAll(s);
-
-const ACHIEVE_THRESHOLD = 0.7; // 70% 达标
+// ===== 含含开心学习 v2.0 =====
+const $ = s => document.querySelector(s);
+const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2,6);
 
 let state = {
-  data: { tasks: {}, templates: [], achievements: {} },
+  data: null,
   viewYear: new Date().getFullYear(),
   viewMonth: new Date().getMonth(),
-  selectedDate: todayStr()
+  selectedDate: todayStr(),
+  isParent: false,
+  theme: 'melody'
 };
 
 function todayStr() {
   const d = new Date();
   return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
 }
-function fmtDate(y, m, d) {
-  return `${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
-}
-function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2,6); }
+function fmtDate(y,m,d) { return `${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`; }
 
-// ===== 数据加载 =====
+// ===== 数据 =====
 async function loadData() {
   state.data = await window.api.loadData();
-  if (!state.data.tasks) state.data.tasks = {};
-  if (!state.data.templates) state.data.templates = [];
-  if (!state.data.achievements) state.data.achievements = {};
+  state.theme = state.data.settings?.theme || 'melody';
+  applyTheme();
 }
-async function saveData() {
-  await window.api.saveData(state.data);
+async function saveData() { await window.api.saveData(state.data); }
+
+// ===== 主题 =====
+function applyTheme() {
+  document.documentElement.setAttribute('data-theme', state.theme);
+  $('#themeIcon').textContent = state.theme === 'kuromi' ? '😈' : '🎀';
+  renderMascot();
 }
 
-// ===== 日历渲染 =====
+// ===== 导航 =====
+function switchTab(id) {
+  $$('.tab-content').forEach(t => t.classList.remove('active'));
+  $$('.nav-item').forEach(n => n.classList.remove('active'));
+  $(`#${id}`).classList.add('active');
+  $(`.nav-item[data-tab="${id}"]`).classList.add('active');
+  if (id === 'tabShop') renderShop();
+  if (id === 'tabTasks') { renderCalendar(); renderTasks(); renderMascot(); }
+}
+
+// ===== 美乐蒂/库洛米 =====
+function renderMascot() {
+  const panel = $('#mascotPanel');
+  const ds = state.selectedDate;
+  const tasks = state.data.tasks?.[ds] || [];
+  const achieved = state.data.achievements?.[ds] === true;
+
+  let svgFn, name;
+  if (state.theme === 'kuromi') {
+    svgFn = window.Kuromi?.kuromiSVG;
+    name = '库洛米';
+  } else {
+    svgFn = window.Melody?.melodySVG;
+    name = '美乐蒂';
+  }
+
+  let svg = '';
+  if (tasks.length === 0) {
+    svg = svgFn('happy');
+  } else if (achieved) {
+    svg = svgFn('happy');
+  } else {
+    svg = svgFn('sad');
+  }
+
+  panel.innerHTML = `
+    ${svg}
+    <div style="font-size:12px;font-weight:600;color:var(--deep);margin-top:2px">${name}</div>
+    <div class="stars-badge">⭐ ${state.data.stars || 0}</div>
+  `;
+}
+
+// ===== 日历 =====
 function renderCalendar() {
   const y = state.viewYear, m = state.viewMonth;
   $('#monthLabel').textContent = `${y}年${m+1}月`;
-  const first = new Date(y, m, 1);
-  const startDay = first.getDay();
-  const daysInMonth = new Date(y, m+1, 0).getDate();
-  const prevDays = new Date(y, m, 0).getDate();
+  const first = new Date(y,m,1), startDay = first.getDay();
+  const daysInMonth = new Date(y,m+1,0).getDate();
+  const prevDays = new Date(y,m,0).getDate();
+  const grid = $('#calendarGrid'); grid.innerHTML = '';
 
-  const grid = $('#calendarGrid');
-  grid.innerHTML = '';
-
-  // 上月尾巴
-  for (let i = startDay - 1; i >= 0; i--) {
+  for (let i = startDay-1; i >= 0; i--) {
     const d = prevDays - i;
-    const cell = makeDayCell(y, m-1, d, true);
-    grid.appendChild(cell);
+    grid.appendChild(makeDayCell(y, m-1, d, true));
   }
-  // 本月
   for (let d = 1; d <= daysInMonth; d++) {
-    const cell = makeDayCell(y, m, d, false);
-    grid.appendChild(cell);
+    grid.appendChild(makeDayCell(y, m, d, false));
   }
-  // 下月开头补齐到 42 格
   const total = startDay + daysInMonth;
   const tail = (7 - (total % 7)) % 7;
   for (let d = 1; d <= tail; d++) {
-    const cell = makeDayCell(y, m+1, d, true);
-    grid.appendChild(cell);
+    grid.appendChild(makeDayCell(y, m+1, d, true));
   }
 }
 
-function makeDayCell(y, m, d, otherMonth) {
-  // 规范化月份
-  let yy = y, mm = m;
-  if (mm < 0) { yy--; mm = 11; }
-  if (mm > 11) { yy++; mm = 0; }
-  const ds = fmtDate(yy, mm, d);
+function makeDayCell(y,m,d,otherMonth) {
+  let yy=y,mm=m; if(mm<0){yy--;mm=11;} if(mm>11){yy++;mm=0;}
+  const ds = fmtDate(yy,mm,d);
   const cell = document.createElement('div');
   cell.className = 'cal-day';
-  if (otherMonth) cell.classList.add('other-month');
-  if (ds === todayStr()) cell.classList.add('today');
-  if (ds === state.selectedDate) cell.classList.add('selected');
-  if (state.data.tasks[ds] && state.data.tasks[ds].length > 0) cell.classList.add('has-task');
-  if (state.data.achievements[ds]) cell.classList.add('achieved');
+  if(otherMonth) cell.classList.add('other-month');
+  if(ds === todayStr()) cell.classList.add('today');
+  if(ds === state.selectedDate) cell.classList.add('selected');
+  if(state.data.tasks?.[ds]?.length > 0) cell.classList.add('has-task');
   cell.textContent = d;
   cell.addEventListener('click', () => {
     state.selectedDate = ds;
-    renderCalendar();
-    renderTasks();
-    renderMelody();
+    renderCalendar(); renderTasks(); renderMascot();
   });
   return cell;
 }
 
-// ===== 任务渲染 =====
+// ===== 任务 =====
 function renderTasks() {
   const ds = state.selectedDate;
-  const [y, m, d] = ds.split('-').map(Number);
-  const weekDays = ['周日','周一','周二','周三','周四','周五','周六'];
-  const wd = new Date(y, m-1, d).getDay();
-  $('#selectedDateLabel').textContent = `${m}月${d}日 ${weekDays[wd]}`;
+  const [y,m,d] = ds.split('-').map(Number);
+  const wd = ['周日','周一','周二','周三','周四','周五','周六'][new Date(y,m-1,d).getDay()];
+  $('#selectedDateLabel').textContent = `${m}月${d}日 ${wd}`;
 
-  const today = todayStr();
-  const tl = $('#todayLabel');
-  if (tl) tl.textContent = `今天是 ${today.replace(/-/g, '/')} ${weekDays[new Date().getDay()]}`;
+  // 家长模式显示添加行
+  $('#taskAddRow').style.display = state.isParent ? 'flex' : 'none';
 
-  const tasks = state.data.tasks[ds] || [];
-  const list = $('#taskList');
-  list.innerHTML = '';
+  const tasks = state.data.tasks?.[ds] || [];
+  const list = $('#taskList'); list.innerHTML = '';
   const empty = $('#taskEmpty');
 
   if (tasks.length === 0) {
@@ -111,454 +136,278 @@ function renderTasks() {
       const item = document.createElement('div');
       item.className = 'task-item' + (t.done ? ' done' : '');
 
-      const check = document.createElement('div');
-      check.className = 'task-check';
-      check.textContent = t.done ? '✓' : '';
-      check.addEventListener('click', async () => {
-        t.done = !t.done;
-        await saveData();
-        renderTasks();
-        renderCalendar();
-        await checkAchievement(ds);
-        renderMelody();
-      });
-
       const body = document.createElement('div');
       body.className = 'task-body';
+
       const title = document.createElement('div');
       title.className = 'task-title';
-      title.textContent = t.title;
+      title.textContent = (t.done ? '✅ ' : '') + t.title;
       body.appendChild(title);
 
-      // 附件按钮
+      const meta = document.createElement('div');
+      meta.className = 'task-meta';
+      meta.innerHTML = `<span class="task-stars">⭐${t.stars || 1}</span>`;
+      body.appendChild(meta);
+
+      // 上传附件按钮
       const attachBtn = document.createElement('button');
       attachBtn.className = 'task-attach-btn';
       if (t.attachment) attachBtn.classList.add('has-file');
-      attachBtn.innerHTML = t.attachment ? '📎 已上传附件' : '📷 上传照片/视频';
-      attachBtn.addEventListener('click', () => onAttachment(t, attachBtn));
+      attachBtn.innerHTML = t.attachment ? '📎 查看附件' : '📷 上传';
+      attachBtn.addEventListener('click', () => onAttachment(t));
       body.appendChild(attachBtn);
 
-      // 已上传时显示删除附件 + 保存到相册按钮
+      // 已上传时显示操作按钮
       if (t.attachment) {
-        const attachActions = document.createElement('span');
-        attachActions.style.cssText = 'display:inline-flex;gap:4px;margin-top:4px;';
+        const actRow = document.createElement('span');
+        actRow.style.cssText = 'display:inline-flex;gap:3px;margin-top:2px';
 
-        // 删除附件
-        const delAttach = document.createElement('button');
-        delAttach.className = 'task-attach-btn';
-        delAttach.style.cssText = 'color:#E53935;border-color:#FFCDD2;background:#FFEBEE;';
-        delAttach.textContent = '✕ 删除附件';
-        delAttach.addEventListener('click', async (e) => {
-          e.stopPropagation();
-          t.attachment = null;
-          await saveData();
-          renderTasks();
+        const delA = document.createElement('button');
+        delA.className = 'task-attach-btn';
+        delA.style.cssText = 'color:#E53935;border-color:#FFCDD2;background:#FFEBEE';
+        delA.textContent = '✕ 删除';
+        delA.addEventListener('click', async e => {
+          e.stopPropagation(); t.attachment = null;
+          if (!t.done) { t.done = true; state.data.stars = (state.data.stars||0) + (t.stars||1); }
+          await saveData(); renderTasks(); renderMascot(); renderCalendar();
         });
-        attachActions.appendChild(delAttach);
+        actRow.appendChild(delA);
 
-        // 保存到相册
-        const saveToAlbum = document.createElement('button');
-        saveToAlbum.className = 'task-attach-btn';
-        saveToAlbum.style.cssText = 'color:#1976D2;border-color:#BBDEFB;background:#E3F2FD;';
-        saveToAlbum.textContent = '💾 存到相册';
-        saveToAlbum.addEventListener('click', async (e) => {
+        const saveA = document.createElement('button');
+        saveA.className = 'task-attach-btn';
+        saveA.style.cssText = 'color:#1976D2;border-color:#BBDEFB;background:#E3F2FD';
+        saveA.textContent = '💾 保存';
+        saveA.addEventListener('click', async e => {
           e.stopPropagation();
           const b64 = await window.api.readAttachment(t.attachment.path);
           if (!b64) return;
-          const mime = t.attachment.type || 'image/png';
-          const dataUrl = 'data:' + mime + ';base64,' + b64;
-          if (mime.startsWith('image/')) {
-            // 创建下载链接
-            const a = document.createElement('a');
-            a.href = dataUrl;
-            a.download = t.attachment.originalName || 'photo.jpg';
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            alert('已保存到相册！');
-          } else if (mime.startsWith('video/')) {
-            const a = document.createElement('a');
-            a.href = dataUrl;
-            a.download = t.attachment.originalName || 'video.mp4';
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            alert('已保存到相册！');
-          }
+          const a = document.createElement('a');
+          a.href = 'data:'+(t.attachment.type||'image/png')+';base64,'+b64;
+          a.download = t.attachment.originalName || 'file';
+          document.body.appendChild(a); a.click(); document.body.removeChild(a);
         });
-        attachActions.appendChild(saveToAlbum);
-        body.appendChild(attachActions);
+        actRow.appendChild(saveA);
+        body.appendChild(actRow);
       }
 
-      // 附件缩略图（图片）
-      if (t.attachment && t.attachment.type && t.attachment.type.startsWith('image/')) {
-        loadAttachmentThumb(t.attachment.path).then(src => {
-          if (src) {
-            const img = document.createElement('img');
-            img.className = 'attach-thumb';
-            img.src = src;
-            img.addEventListener('click', () => openAttachModal(t.attachment));
-            body.appendChild(img);
-          }
-        });
-      } else if (t.attachment && t.attachment.type && t.attachment.type.startsWith('video/')) {
-        const badge = document.createElement('div');
-        badge.className = 'attach-thumb';
-        badge.style.display = 'flex';
-        badge.style.alignItems = 'center';
-        badge.style.justifyContent = 'center';
-        badge.style.background = '#000';
-        badge.style.color = '#fff';
-        badge.style.fontSize = '24px';
-        badge.textContent = '🎬';
-        badge.style.cursor = 'pointer';
-        badge.addEventListener('click', () => openAttachModal(t.attachment));
-        body.appendChild(badge);
-      }
-
-      const actions = document.createElement('div');
-      actions.className = 'task-actions';
+      // 删除任务
       const del = document.createElement('button');
-      del.className = 'task-del';
-      del.textContent = '🗑';
+      del.className = 'task-del'; del.textContent = '🗑';
       del.title = '删除任务';
-      del.addEventListener('click', async () => {
-        state.data.tasks[ds].splice(i, 1);
-        if (state.data.tasks[ds].length === 0) delete state.data.tasks[ds];
-        await saveData();
-        renderTasks();
-        renderCalendar();
-        await checkAchievement(ds);
-        renderMelody();
-      });
-      actions.appendChild(del);
+      if (state.isParent) {
+        del.addEventListener('click', async () => {
+          state.data.tasks[ds].splice(i,1);
+          if (state.data.tasks[ds].length === 0) delete state.data.tasks[ds];
+          await saveData(); renderTasks(); renderCalendar(); renderMascot();
+        });
+      } else {
+        del.style.opacity = '0.3';
+      }
 
-      item.appendChild(check);
       item.appendChild(body);
-      item.appendChild(actions);
+      item.appendChild(del);
       list.appendChild(item);
     });
   }
-
-  // 进度
-  const done = tasks.filter(t => t.done).length;
-  const pct = tasks.length === 0 ? 0 : Math.round(done / tasks.length * 100);
-  $('#progressText').textContent = `${pct}%`;
-  $('#progressFill').style.width = pct + '%';
 }
 
 // ===== 附件处理 =====
-async function onAttachment(task, btn) {
+async function onAttachment(task) {
   if (task.attachment) {
-    // 已有附件，直接打开预览
     openAttachModal(task.attachment);
     return;
   }
-  // 触发文件选择
   const input = document.createElement('input');
-  input.type = 'file';
-  input.accept = 'image/*,video/*';
+  input.type = 'file'; input.accept = 'image/*,video/*';
   input.addEventListener('change', async () => {
-    const file = input.files[0];
-    if (!file) return;
+    const file = input.files[0]; if (!file) return;
     const buf = await file.arrayBuffer();
     const result = await window.api.saveAttachment(file.name, buf);
     task.attachment = { path: result.path, name: result.name, type: file.type, originalName: file.name };
-    await saveData();
-    renderTasks();
+    // 上传即自动完成
+    if (!task.done) {
+      task.done = true;
+      state.data.stars = (state.data.stars||0) + (task.stars||1);
+    }
+    await saveData(); renderTasks(); renderMascot(); renderCalendar();
   });
   input.click();
 }
 
-async function loadAttachmentThumb(filePath) {
-  const b64 = await window.api.readAttachment(filePath);
-  if (!b64) return null;
-  return 'data:image/png;base64,' + b64;
-}
-
-async function openAttachModal(attachment) {
-  $('#attachTitle').textContent = attachment.originalName || attachment.name;
-  const stage = $('#mediaStage');
-  stage.innerHTML = '';
-  const b64 = await window.api.readAttachment(attachment.path);
-  if (!b64) {
-    stage.innerHTML = '<p style="color:#fff;">附件读取失败</p>';
-  } else if (attachment.type && attachment.type.startsWith('image/')) {
-    const img = document.createElement('img');
-    img.src = 'data:image/png;base64,' + b64;
-    stage.appendChild(img);
-  } else if (attachment.type && attachment.type.startsWith('video/')) {
-    const video = document.createElement('video');
-    video.controls = true;
-    video.src = 'data:video/mp4;base64,' + b64;
-    stage.appendChild(video);
-  } else {
-    stage.innerHTML = '<p style="color:#fff;">不支持的附件类型</p>';
+async function openAttachModal(att) {
+  $('#attachTitle').textContent = att.originalName || att.name;
+  const stage = $('#mediaStage'); stage.innerHTML = '';
+  const b64 = await window.api.readAttachment(att.path);
+  if (!b64) { stage.innerHTML = '<p style="color:#fff">读取失败</p>'; }
+  else if (att.type?.startsWith('image/')) {
+    const img = document.createElement('img'); img.src = 'data:image/png;base64,'+b64;
+    img.style.cssText = 'max-width:100%;max-height:50vh'; stage.appendChild(img);
+  } else if (att.type?.startsWith('video/')) {
+    const v = document.createElement('video'); v.controls = true;
+    v.src = 'data:video/mp4;base64,'+b64; v.style.maxWidth='100%'; stage.appendChild(v);
   }
-  // 绑定"用系统程序打开"
-  const oae = $('#openAttachExternal');
-  if (oae) oae.onclick = () => window.api.openAttachment(attachment.path);
   $('#attachModal').classList.add('show');
 }
 
-// ===== 达标判定 =====
-async function checkAchievement(ds) {
-  const tasks = state.data.tasks[ds] || [];
-  if (tasks.length === 0) {
-    delete state.data.achievements[ds];
-    await saveData();
-    return;
-  }
-  const done = tasks.filter(t => t.done).length;
-  const ratio = done / tasks.length;
-  const wasAchieved = state.data.achievements[ds] === true;
-  if (ratio >= ACHIEVE_THRESHOLD) {
-    state.data.achievements[ds] = true;
-    await saveData();
-    if (!wasAchieved) {
-      // 触发庆祝动画
-      playCelebrate();
+// ===== 星星商城 =====
+function renderShop() {
+  $('#shopStarCount').textContent = state.data.stars || 0;
+  const grid = $('#shopGrid'); grid.innerHTML = '';
+
+  (state.data.shop || []).forEach(item => {
+    const purchased = (state.data.purchases || []).some(p => p.id === item.id);
+    const card = document.createElement('div');
+    card.className = 'shop-item' + (purchased ? ' purchased' : '');
+
+    card.innerHTML = `
+      <span class="si">${item.icon}</span>
+      <div class="sn">${item.name}</div>
+      <div class="sc">⭐ ${item.cost}</div>
+      <button class="buy-btn" ${purchased ? 'disabled' : ''}>${purchased ? '已兑换' : '兑换'}</button>
+    `;
+
+    if (!purchased) {
+      card.querySelector('.buy-btn').addEventListener('click', async () => {
+        if ((state.data.stars||0) < item.cost) {
+          alert('星星不够哦！还需要 ⭐' + (item.cost - (state.data.stars||0)) + ' 颗');
+          return;
+        }
+        state.data.stars -= item.cost;
+        if (!state.data.purchases) state.data.purchases = [];
+        state.data.purchases.push({ id: item.id, name: item.name, date: todayStr() });
+        await saveData(); renderShop(); renderMascot();
+      });
     }
-  } else {
-    delete state.data.achievements[ds];
-    await saveData();
-  }
-}
 
-// ===== 美乐蒂渲染 =====
-function renderMelody() {
-  const ds = state.selectedDate;
-  const tasks = state.data.tasks[ds] || [];
-  const achieved = state.data.achievements[ds] === true;
-  const stage = $('#melodyStage');
-  const bubble = $('#melodyBubble');
-
-  if (tasks.length === 0) {
-    // 没任务：默认开心但提示
-    stage.innerHTML = window.Melody.melodySVG('happy');
-    bubble.textContent = '含含，先添加今天的学习计划吧！';
-  } else if (achieved) {
-    stage.innerHTML = window.Melody.melodySVG('happy');
-    bubble.textContent = '谢谢含含！今天你真棒！';
-  } else {
-    stage.innerHTML = window.Melody.melodySVG('sad');
-    bubble.textContent = '含含，你要加油噢！';
-  }
-
-  // 状态条
-  const done = tasks.filter(t => t.done).length;
-  const ratio = tasks.length === 0 ? 0 : done / tasks.length;
-  const satiety = Math.round(ratio * 100);
-  const clean = achieved ? 100 : Math.round(ratio * 80);
-  $('#satietyBar').style.width = satiety + '%';
-  $('#satietyText').textContent = satiety + '%';
-  $('#cleanBar').style.width = clean + '%';
-  $('#cleanText').textContent = clean + '%';
-
-  // 统计
-  const today = todayStr();
-  let streak = 0;
-  const d = new Date();
-  while (true) {
-    const ds2 = fmtDate(d.getFullYear(), d.getMonth(), d.getDate());
-    if (state.data.achievements[ds2]) streak++;
-    else break;
-    d.setDate(d.getDate() - 1);
-    if (streak > 365) break;
-  }
-  $('#streakDays').textContent = streak;
-  $('#totalDays').textContent = Object.keys(state.data.achievements).length;
-}
-
-// ===== 庆祝动画 =====
-function playCelebrate() {
-  const overlay = $('#celebrateOverlay');
-  overlay.innerHTML = `
-    <div class="celebrate-scene">
-      <div class="celebrate-step active" data-step="eat">
-        <span class="big-emoji">🍚</span>
-        <p>美乐蒂饱餐一顿！</p>
-      </div>
-      <div class="celebrate-step" data-step="bath" style="display:none;">
-        <span class="big-emoji">🛁</span>
-        <p>洗个香喷喷的澡！</p>
-      </div>
-      <div class="celebrate-step" data-step="done" style="display:none;">
-        <span class="big-emoji">💕</span>
-        <p>谢谢含含！今天你真棒！</p>
-      </div>
-    </div>
-  `;
-  overlay.classList.add('show');
-  const steps = overlay.querySelectorAll('.celebrate-step');
-  let i = 0;
-  const show = () => {
-    steps.forEach(s => s.classList.remove('active'));
-    if (i < steps.length) {
-      steps[i].classList.add('active');
-      i++;
-      setTimeout(show, 1300);
-    } else {
-      setTimeout(() => overlay.classList.remove('show'), 800);
+    // 家长模式下可删除
+    if (state.isParent) {
+      const delBtn = document.createElement('button');
+      delBtn.textContent = '✕'; delBtn.style.cssText = 'background:transparent;border:none;color:#E53935;font-size:14px;cursor:pointer;position:absolute;top:2px;right:4px';
+      delBtn.addEventListener('click', async e => {
+        e.stopPropagation();
+        state.data.shop = state.data.shop.filter(s => s.id !== item.id);
+        await saveData(); renderShop();
+      });
+      card.style.position = 'relative';
+      card.appendChild(delBtn);
     }
-  };
-  setTimeout(show, 100);
-}
 
-// ===== 模板 =====
-function renderTemplates() {
-  const list = $('#templateList');
-  list.innerHTML = '';
-  if (state.data.templates.length === 0) {
-    list.innerHTML = '<p style="color:var(--text-muted);font-size:13px;text-align:center;padding:10px;">还没有模板，先添加一些常用任务吧</p>';
-    return;
-  }
-  state.data.templates.forEach((t, i) => {
-    const item = document.createElement('div');
-    item.className = 'template-item';
-    item.innerHTML = `<span>${escapeHtml(t)}</span>`;
-    const del = document.createElement('button');
-    del.className = 'task-del';
-    del.textContent = '🗑';
-    del.addEventListener('click', async () => {
-      state.data.templates.splice(i, 1);
-      await saveData();
-      renderTemplates();
-    });
-    item.appendChild(del);
-    list.appendChild(item);
+    grid.appendChild(card);
   });
+
+  // 家长工具
+  $('#parentTools').classList.toggle('show', state.isParent);
 }
-function escapeHtml(s) {
-  return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+// ===== 家长模式 =====
+function toggleParent() {
+  if (state.isParent) {
+    state.isParent = false;
+    $('#parentBtn').textContent = '🔒';
+    renderTasks(); renderShop();
+    return;
+  }
+  $('#parentModal').classList.add('show');
+  $('#parentPassword').value = '';
+  $('#parentMsg').textContent = '';
 }
 
 // ===== 事件绑定 =====
 function bindEvents() {
-  // 月份切换
+  // 导航
+  $$('.nav-item').forEach(n => {
+    n.addEventListener('click', () => switchTab(n.dataset.tab));
+  });
+
+  // 日历切换
   $('#prevMonth').addEventListener('click', () => {
-    state.viewMonth--;
-    if (state.viewMonth < 0) { state.viewMonth = 11; state.viewYear--; }
-    renderCalendar();
+    state.viewMonth--; if(state.viewMonth<0){state.viewMonth=11;state.viewYear--;} renderCalendar();
   });
   $('#nextMonth').addEventListener('click', () => {
-    state.viewMonth++;
-    if (state.viewMonth > 11) { state.viewMonth = 0; state.viewYear++; }
-    renderCalendar();
-  });
-  $('#todayBtn').addEventListener('click', () => {
-    const d = new Date();
-    state.viewYear = d.getFullYear();
-    state.viewMonth = d.getMonth();
-    state.selectedDate = todayStr();
-    renderCalendar();
-    renderTasks();
-    renderMelody();
+    state.viewMonth++; if(state.viewMonth>11){state.viewMonth=0;state.viewYear++;} renderCalendar();
   });
 
   // 添加任务
-  const addTask = async () => {
-    const input = $('#taskInput');
-    const v = input.value.trim();
-    if (!v) return;
+  $('#addTaskBtn').addEventListener('click', async () => {
+    const v = $('#taskInput').value.trim(); if (!v) return;
+    const stars = parseInt($('#starSelect').value) || 1;
     const ds = state.selectedDate;
     if (!state.data.tasks[ds]) state.data.tasks[ds] = [];
-    state.data.tasks[ds].push({ id: uid(), title: v, done: false, attachment: null });
-    input.value = '';
-    await saveData();
-    renderTasks();
-    renderCalendar();
-    renderMelody();
-  };
-  $('#addTaskBtn').addEventListener('click', addTask);
-  $('#taskInput').addEventListener('keydown', (e) => { if (e.key === 'Enter') addTask(); });
-
-  // 模板弹窗
-  $('#templateBtn').addEventListener('click', () => {
-    renderTemplates();
-    $('#templateModal').classList.add('show');
-  });
-  $('#closeTemplate').addEventListener('click', () => $('#templateModal').classList.remove('show'));
-  $('#addTemplateBtn').addEventListener('click', async () => {
-    const v = $('#templateInput').value.trim();
-    if (!v) return;
-    state.data.templates.push(v);
-    $('#templateInput').value = '';
-    await saveData();
-    renderTemplates();
-  });
-  $('#applyTemplateBtn').addEventListener('click', async () => {
-    const ds = state.selectedDate;
-    if (!state.data.tasks[ds]) state.data.tasks[ds] = [];
-    state.data.templates.forEach(t => {
-      // 避免重复添加
-      if (!state.data.tasks[ds].some(x => x.title === t)) {
-        state.data.tasks[ds].push({ id: uid(), title: t, done: false, attachment: null });
-      }
-    });
-    await saveData();
-    $('#templateModal').classList.remove('show');
-    renderTasks();
-    renderCalendar();
-    renderMelody();
+    state.data.tasks[ds].push({ id: uid(), title: v, done: false, stars, attachment: null });
+    $('#taskInput').value = '';
+    await saveData(); renderTasks(); renderCalendar(); renderMascot();
   });
 
-  // 一键带入今天
-  $('#useTemplateBtn').addEventListener('click', async () => {
-    if (state.data.templates.length === 0) {
-      // 没模板就打开模板弹窗
-      renderTemplates();
-      $('#templateModal').classList.add('show');
-      return;
+  // 主题
+  $('#themeBtn').addEventListener('click', () => $('#themeModal').classList.add('show'));
+  $('#closeTheme').addEventListener('click', () => $('#themeModal').classList.remove('show'));
+  $('#pickMelody').addEventListener('click', async () => {
+    state.theme = 'melody'; state.data.settings.theme = 'melody';
+    await saveData(); applyTheme(); renderCalendar(); renderTasks(); $('#themeModal').classList.remove('show');
+  });
+  $('#pickKuromi').addEventListener('click', async () => {
+    state.theme = 'kuromi'; state.data.settings.theme = 'kuromi';
+    await saveData(); applyTheme(); renderCalendar(); renderTasks(); $('#themeModal').classList.remove('show');
+  });
+
+  // 同步
+  $('#syncBtn').addEventListener('click', () => {
+    if (window.api.hasToken()) $('#tokenInput').value = window.api.getToken();
+    $('#syncModal').classList.add('show');
+  });
+  $('#closeSync').addEventListener('click', () => $('#syncModal').classList.remove('show'));
+  $('#saveTokenBtn').addEventListener('click', async () => {
+    const t = $('#tokenInput').value.trim(); if (!t) return;
+    window.api.setToken(t); $('#syncStatus').textContent = '✅ 已保存';
+    await window.api.saveData(state.data);
+    setTimeout(() => $('#syncModal').classList.remove('show'), 1000);
+  });
+
+  // 家长模式
+  $('#parentBtn').addEventListener('click', toggleParent);
+  $('#closeParent').addEventListener('click', () => $('#parentModal').classList.remove('show'));
+  $('#loginParent').addEventListener('click', () => {
+    const pw = $('#parentPassword').value;
+    if (pw === (state.data.settings?.password || '123456')) {
+      state.isParent = true;
+      $('#parentBtn').textContent = '🔓';
+      $('#parentModal').classList.remove('show');
+      renderTasks(); renderShop();
+    } else {
+      $('#parentMsg').textContent = '❌ 密码错误';
     }
-    state.selectedDate = todayStr();
-    const ds = state.selectedDate;
-    if (!state.data.tasks[ds]) state.data.tasks[ds] = [];
-    state.data.templates.forEach(t => {
-      if (!state.data.tasks[ds].some(x => x.title === t)) {
-        state.data.tasks[ds].push({ id: uid(), title: t, done: false, attachment: null });
-      }
-    });
-    await saveData();
-    renderCalendar();
-    renderTasks();
-    renderMelody();
+  });
+
+  // 商城家长工具
+  $('#addStarsBtn').addEventListener('click', async () => {
+    state.data.stars = (state.data.stars||0) + parseInt($('#starDelta').value||0);
+    await saveData(); renderShop(); renderMascot();
+  });
+  $('#subStarsBtn').addEventListener('click', async () => {
+    state.data.stars = Math.max(0, (state.data.stars||0) - parseInt($('#starDelta').value||0));
+    await saveData(); renderShop(); renderMascot();
+  });
+  $('#addShopItemBtn').addEventListener('click', async () => {
+    const name = $('#newItemName').value.trim();
+    const icon = $('#newItemIcon').value.trim() || '🎁';
+    const cost = parseInt($('#newItemCost').value) || 10;
+    const cat = $('#newItemCat').value;
+    if (!name) return;
+    state.data.shop.push({ id: uid(), name, icon, cost, category: cat });
+    $('#newItemName').value = ''; $('#newItemIcon').value = ''; $('#newItemCost').value = '';
+    await saveData(); renderShop();
   });
 
   // 附件弹窗关闭
   $('#closeAttach').addEventListener('click', () => $('#attachModal').classList.remove('show'));
 
-  // 点击遮罩关闭
-  [$('#templateModal'), $('#attachModal'), $('#syncModal')].forEach(m => {
-    m.addEventListener('click', (e) => { if (e.target === m) m.classList.remove('show'); });
-  });
-
-  // 同步设置
-  $('#syncBtn').addEventListener('click', () => {
-    if (window.api.hasToken()) {
-      $('#tokenInput').value = window.api.getToken();
-      $('#syncStatus').textContent = '✅ 已设置同步';
-    }
-    $('#syncModal').classList.add('show');
-  });
-  $('#closeSync').addEventListener('click', () => $('#syncModal').classList.remove('show'));
-  $('#saveTokenBtn').addEventListener('click', async () => {
-    const token = $('#tokenInput').value.trim();
-    if (!token) return;
-    window.api.setToken(token);
-    $('#syncStatus').textContent = '✅ 已保存！正在同步...';
-    // 立即推送当前数据
-    const raw = localStorage.getItem('hanhan-data');
-    if (raw) {
-      await window.api.saveData(JSON.parse(raw));
-    }
-    $('#syncStatus').textContent = '✅ 同步成功！妈妈和孩子数据互通了';
-    setTimeout(() => $('#syncModal').classList.remove('show'), 1500);
-  });
-  $('#howToToken').addEventListener('click', () => {
-    window.open('https://github.com/settings/tokens/new?scopes=repo&description=hanhan-sync', '_blank');
+  // 点击遮罩关闭弹窗
+  ['#parentModal','#syncModal','#attachModal','#themeModal'].forEach(s => {
+    $(s).addEventListener('click', e => { if(e.target === $(s)) $(s).classList.remove('show'); });
   });
 }
+
+function $$(s) { return document.querySelectorAll(s); }
 
 // ===== 启动 =====
 (async function init() {
@@ -566,18 +415,17 @@ function bindEvents() {
   bindEvents();
   renderCalendar();
   renderTasks();
-  renderMelody();
+  renderMascot();
+  renderShop();
 
-  // 每 30 秒自动从 GitHub 同步一次（静默）
+  // 30 秒自动同步
   setInterval(async () => {
     try {
-      const prevData = JSON.stringify(state.data);
+      const prev = JSON.stringify(state.data);
       state.data = await window.api.loadData();
-      if (JSON.stringify(state.data) !== prevData) {
-        renderCalendar();
-        renderTasks();
-        renderMelody();
+      if (JSON.stringify(state.data) !== prev) {
+        renderCalendar(); renderTasks(); renderMascot();
       }
-    } catch (e) {}
+    } catch(e) {}
   }, 30000);
 })();
