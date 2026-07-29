@@ -118,5 +118,7 @@
       "category": "Ã¥Â®ÂÃ§ÂÂ©"
     }
   ],
-  "settings": {}
+  "settings": {
+    "theme": "kuromi"
+  }
 }
