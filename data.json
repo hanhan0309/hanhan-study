@@ -12,9 +12,14 @@
       {
         "id": "ms5dhdmrceo9",
         "title": "活页字帖",
-        "done": false,
+        "done": true,
         "stars": 3,
-        "attachment": null
+        "attachment": {
+          "path": "1785286502797_IMG_8357.jpeg",
+          "name": "1785286502797_IMG_8357.jpeg",
+          "type": "image/jpeg",
+          "originalName": "IMG_8357.jpeg"
+        }
       }
     ]
   },
@@ -22,7 +27,7 @@
   "achievements": {
     "2026-07-28": true
   },
-  "stars": 0,
+  "stars": 3,
   "purchases": [],
   "shop": [
     {
