@@ -401,6 +401,19 @@ function bindEvents() {
     await saveData(); applyTheme(); renderCalendar(); renderTasks(); $('#themeModal').classList.remove('show');
   });
 
+  // 重置数据（用于调试）
+  $('#resetDataBtn').addEventListener('click', async () => {
+    if (confirm('确定要清空所有数据吗？此操作不可恢复！')) {
+      localStorage.removeItem('hanhan-data');
+      localStorage.removeItem('gh_sync_token');
+      state.data = await window.api.loadData();
+      state.isParent = false;
+      $('#parentBtn').textContent = '🔒';
+      renderCalendar(); renderTasks(); renderMascot(); renderShop();
+      alert('数据已清空！');
+    }
+  });
+
   // 同步
   $('#syncBtn').addEventListener('click', () => {
     if (window.api.hasToken()) $('#tokenInput').value = window.api.getToken();
